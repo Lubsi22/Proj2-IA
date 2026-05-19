@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forest Fire Area Predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="backdrop backdrop-1"></div>
+  <div class="backdrop backdrop-2"></div>
+
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">Model comparison</p>
+      <h1>Predict the burned area from weather and terrain inputs.</h1>
+      <p class="lede">
+        This web app lets you choose among the trained regression models and estimates the burned area for the Montesinho forest-fire dataset.
+      </p>
+    </section>
+
+    <section class="grid">
+      <form class="panel form-panel" method="post" action="/" autocomplete="off">
+        <div class="panel-heading">
+          <h2>Fire conditions</h2>
+          <p>Inputs are ordered by feature importance, but predictions still use the model's original training schema.</p>
+        </div>
+
+        <label class="field model-picker">
+          <span class="field-label">Prediction model</span>
+          <select name="model_name" required>
+            {% for model_key, model_label in model_options %}
+            <option value="{{ model_key }}" {% if selected_model == model_key %}selected{% endif %}>
+              {{ model_label }}
+            </option>
+            {% endfor %}
+          </select>
+          <span class="field-help">Choose which saved model runs the prediction.</span>
+        </label>
+
+        <div class="field-grid">
+          {% for field in fields %}
+          <label class="field feature-field" data-feature-name="{{ field.name }}">
+            <span class="field-label">{{ field.label }} </span>
+
+            {% if field.type == 'select' %}
+            <select name="{{ field.name }}" required>
+              {% for option_value, option_label in field.options %}
+              <option value="{{ option_value }}" {% if values[field.name] == option_value %}selected{% endif %}>
+                {{ option_label }}
+              </option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <input
+              type="number"
+              name="{{ field.name }}"
+              value="{{ values[field.name] }}"
+              min="{{ field.min }}"
+              max="{{ field.max }}"
+              step="{{ field.step }}"
+              required
+            >
+            {% endif %}
+
+            <span class="field-help">{{ field.help }}</span>
+          </label>
+          {% endfor %}
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="submit-button">Predict burned area</button>
+          <button type="reset" class="reset-button">Reset to defaults</button>
+        </div>
+      </form>
+
+      <aside class="panel result-panel">
+        <div class="panel-heading">
+          <h2>Prediction</h2>
+          <p>Model output and the estimated burned area after reversing the log transform.</p>
+        </div>
+
+        {% if error %}
+        <div class="message error">{{ error }}</div>
+        {% endif %}
+
+        {% if result %}
+        <div class="result-card">
+          <span class="result-kicker">Estimated burned area</span>
+          <strong class="result-value">{{ result.area_ha }} ha</strong>
+          <span class="result-meta">Raw model output: {{ result.raw_prediction }}</span>
+          <span class="result-meta">Feature set: {{ result.feature_summary }}</span>
+        </div>
+
+        <dl class="details">
+          <div>
+            <dt>Model</dt>
+            <dd>{{ result.model_label }}</dd>
+          </div>
+          {% if result.show_date_fields %}
+          <div>
+            <dt>Month</dt>
+            <dd>{{ result.month_name }}</dd>
+          </div>
+          <div>
+            <dt>Day</dt>
+            <dd>{{ result.day_name }}</dd>
+          </div>
+          {% endif %}
+        </dl>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon"></div>
+          <p>Submit the form to generate a prediction.</p>
+        </div>
+        {% endif %}
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const modelSelect = document.querySelector('select[name="model_name"]');
+      if (!modelSelect) return;
+
+      const weatherOnlyModels = new Set({{ weather_only_model_keys | tojson }});
+      const fieldsToHide = new Set(["X", "Y", "day", "month"]);
+      const featureFields = document.querySelectorAll(".feature-field");
+
+      function updateVisibleInputs() {
+        const isWeatherOnly = weatherOnlyModels.has(modelSelect.value);
+
+        featureFields.forEach((field) => {
+          const featureName = field.dataset.featureName;
+          const shouldHide = isWeatherOnly && fieldsToHide.has(featureName);
+          const input = field.querySelector("input, select");
+
+          field.style.display = shouldHide ? "none" : "";
+          if (input) {
+            input.disabled = shouldHide;
+          }
+        });
+      }
+
+      modelSelect.addEventListener("change", updateVisibleInputs);
+      updateVisibleInputs();
+    })();
+  </script>
+</body>
+</html>

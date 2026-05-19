@@ -27,3 +27,25 @@ Inspiration
 Understanding and anticipating the area affected by forest fires can greatly benefit fire management and prevention strategies. By using this dataset, you can explore the relationship between different environmental factors and develop models that help in early warning systems and resource allocation for fire control efforts. 
 
 https://www.kaggle.com/datasets/anitarostami/montesinho-forest-fire-prediction-dataset?resource=download
+
+## Web app
+
+The trained model is wired into a Flask app so you can enter fire conditions in a browser and get a prediction.
+
+Run it with:
+
+```bash
+pip install -r requirements.txt
+python app.py
+```
+
+Then open `http://127.0.0.1:5000/`.
+
+The app loads any available trained model artifacts and lets you choose between Gradient Boosting, Random Forest, Extra Trees, and a weather-only Gradient Boosting model in the form before generating a prediction.
+
+Run `ml.py` first if you want to regenerate all three model files:
+
+- `gradient_boosting_regressor.pkl`
+- `random_forest_regressor.pkl`
+- `extra_trees_regressor.pkl`
+- `weather_only_gradient_boosting_regressor.pkl`
